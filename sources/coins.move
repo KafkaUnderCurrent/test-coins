@@ -1,9 +1,15 @@
 module test_coins::coins {
-    use std::signer;
-    use std::string::utf8;
+    use std::signer::address_of;
+    use std::string::{String, utf8};
+    use aptos_std::type_info;
     use aptos_framework::aptos_account;
-
-    use aptos_framework::coin::{Self, MintCapability, BurnCapability};
+    use aptos_framework::coin::{
+        Self,
+        balance,
+        BurnCapability,
+        migrate_to_fungible_store,
+        MintCapability
+    };
 
     /// Represents test USDT coin.
     struct USDT {}
@@ -23,26 +29,26 @@ module test_coins::coins {
     /// Storing mint/burn capabilities for `USDT` and `BTC` coins under user account.
     struct Caps<phantom CoinType> has key {
         mint: MintCapability<CoinType>,
-        burn: BurnCapability<CoinType>,
+        burn: BurnCapability<CoinType>
     }
 
-    /// Initializes `BTC` and `USDT` coins.
-    public entry fun register_coins(token_admin: &signer) {
+    fun init_module(admin: &signer) {
         let (btc_b, btc_f, btc_m) =
-            coin::initialize<BTC>(token_admin,
-                utf8(b"Bitcoin"), utf8(b"BTC"), 8, true);
+            coin::initialize<BTC>(admin, utf8(b"Bitcoin"), utf8(b"BTC"), 8, true);
         let (usdt_b, usdt_f, usdt_m) =
-            coin::initialize<USDT>(token_admin,
-                utf8(b"Tether"), utf8(b"USDT"), 6, true);
+            coin::initialize<USDT>(admin, utf8(b"Tether"), utf8(b"USDT"), 6, true);
         let (eth_b, eth_f, eth_m) =
-            coin::initialize<ETH>(token_admin,
-                utf8(b"Ethereum"), utf8(b"ETH"), 8, true);
+            coin::initialize<ETH>(admin, utf8(b"Ethereum"), utf8(b"ETH"), 8, true);
         let (usdc_b, usdc_f, usdc_m) =
-            coin::initialize<USDC>(token_admin,
-                utf8(b"USD Coin"), utf8(b"USDC"), 6, true);
+            coin::initialize<USDC>(admin, utf8(b"USD Coin"), utf8(b"USDC"), 6, true);
         let (dai_b, dai_f, dai_m) =
-            coin::initialize<DAI>(token_admin,
-                utf8(b"DAI"), utf8(b"DAI"), 6, true);
+            coin::initialize<DAI>(admin, utf8(b"DAI"), utf8(b"DAI"), 6, true);
+
+        migrate_to_fungible_store<BTC>(admin);
+        migrate_to_fungible_store<USDT>(admin);
+        migrate_to_fungible_store<ETH>(admin);
+        migrate_to_fungible_store<USDC>(admin);
+        migrate_to_fungible_store<DAI>(admin);
 
         coin::destroy_freeze_cap(eth_f);
         coin::destroy_freeze_cap(usdc_f);
@@ -50,18 +56,39 @@ module test_coins::coins {
         coin::destroy_freeze_cap(btc_f);
         coin::destroy_freeze_cap(usdt_f);
 
-        move_to(token_admin, Caps<ETH> { mint: eth_m, burn: eth_b });
-        move_to(token_admin, Caps<USDC> { mint: usdc_m, burn: usdc_b });
-        move_to(token_admin, Caps<DAI> { mint: dai_m, burn: dai_b });
-        move_to(token_admin, Caps<BTC> { mint: btc_m, burn: btc_b });
-        move_to(token_admin, Caps<USDT> { mint: usdt_m, burn: usdt_b });
+        move_to(admin, Caps<ETH> { mint: eth_m, burn: eth_b });
+        move_to(admin, Caps<USDC> { mint: usdc_m, burn: usdc_b });
+        move_to(admin, Caps<DAI> { mint: dai_m, burn: dai_b });
+        move_to(admin, Caps<BTC> { mint: btc_m, burn: btc_b });
+        move_to(admin, Caps<USDT> { mint: usdt_m, burn: usdt_b });
     }
 
-    /// Mints new coin `CoinType` on account `acc_addr`.
-    public entry fun mint_coin<CoinType>(token_admin: &signer, acc_addr: address, amount: u64) acquires Caps {
-        let token_admin_addr = signer::address_of(token_admin);
-        let caps = borrow_global<Caps<CoinType>>(token_admin_addr);
+    /// Mints new coin `CoinType` on account anyone.
+    public entry fun mint_coin<CoinType>(signer: &signer, amount: u64) acquires Caps {
+        let caps = borrow_global<Caps<CoinType>>(@test_coins);
         let coins = coin::mint<CoinType>(amount, &caps.mint);
-        aptos_account::deposit_coins(acc_addr, coins);
+        aptos_account::deposit_coins(address_of(signer), coins);
+    }
+
+    public entry fun burn_all_coin<CoinType>(signer: &signer) acquires Caps {
+        let caps = borrow_global<Caps<CoinType>>(@test_coins);
+
+        let coin = coin::withdraw<CoinType>(
+            signer,
+            balance<CoinType>(address_of(signer))
+        );
+
+        coin::burn(coin, &caps.burn);
+    }
+
+    #[view]
+    public fun get_all_coin_types(): vector<String> {
+        vector[
+            type_info::type_name<USDC>(),
+            type_info::type_name<USDT>(),
+            type_info::type_name<ETH>(),
+            type_info::type_name<BTC>(),
+            type_info::type_name<DAI>()
+        ]
     }
 }
