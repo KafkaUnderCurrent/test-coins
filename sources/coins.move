@@ -1,5 +1,6 @@
 module test_coins::coins {
     use std::signer::address_of;
+    use std::string;
     use std::string::{String, utf8};
     use aptos_std::type_info;
     use aptos_framework::aptos_account;
@@ -65,6 +66,7 @@ module test_coins::coins {
 
     /// Mints new coin `CoinType` on account anyone.
     public entry fun mint_coin<CoinType>(signer: &signer, amount: u64) acquires Caps {
+        coin::migrate_to_fungible_store<CoinType>(signer);
         let caps = borrow_global<Caps<CoinType>>(@test_coins);
         let coins = coin::mint<CoinType>(amount, &caps.mint);
         aptos_account::deposit_coins(address_of(signer), coins);

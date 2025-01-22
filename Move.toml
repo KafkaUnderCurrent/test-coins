@@ -11,4 +11,4 @@ subdir = 'aptos-move/framework/aptos-framework'
 test_coins = "_"
 
 [dev-addresses]
-test_coins = "0x620e7b275e64a911ea62d2d7763dde554de8454e16f264b21dd2d209393de524"
+test_coins = "0x10063753b6fadbb13a57567c00ef6cf82c05b1b74e0b3754a677a0344582ec1e"
