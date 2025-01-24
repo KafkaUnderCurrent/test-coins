@@ -1,7 +1,9 @@
 module test_coins::coins {
+    use std::option;
     use std::signer::address_of;
-    use std::string;
     use std::string::{String, utf8};
+    use aptos_std::simple_map;
+    use aptos_std::simple_map::SimpleMap;
     use aptos_std::type_info;
     use aptos_framework::aptos_account;
     use aptos_framework::coin::{
@@ -9,8 +11,10 @@ module test_coins::coins {
         balance,
         BurnCapability,
         migrate_to_fungible_store,
-        MintCapability
+        MintCapability,
+        paired_metadata
     };
+    use aptos_framework::object;
 
     /// Represents test USDT coin.
     struct USDT {}
@@ -72,6 +76,14 @@ module test_coins::coins {
         aptos_account::deposit_coins(address_of(signer), coins);
     }
 
+    public entry fun quick_mint(signer: &signer, amount: u64) acquires Caps {
+        mint_coin<USDT>(signer, amount);
+        mint_coin<USDC>(signer, amount);
+        mint_coin<ETH>(signer, amount);
+        mint_coin<BTC>(signer, amount);
+        mint_coin<DAI>(signer, amount);
+    }
+
     public entry fun burn_all_coin<CoinType>(signer: &signer) acquires Caps {
         let caps = borrow_global<Caps<CoinType>>(@test_coins);
 
@@ -92,5 +104,31 @@ module test_coins::coins {
             type_info::type_name<BTC>(),
             type_info::type_name<DAI>()
         ]
+    }
+
+    #[view]
+    public fun get_fa_address(): SimpleMap<String, address> {
+        let map =
+            simple_map::new_from(
+                get_all_coin_types(),
+                vector[
+                    object::object_address(
+                        &option::destroy_some(paired_metadata<USDC>())
+                    ),
+                    object::object_address(
+                        &option::destroy_some(paired_metadata<USDT>())
+                    ),
+                    object::object_address(
+                        &option::destroy_some(paired_metadata<ETH>())
+                    ),
+                    object::object_address(
+                        &option::destroy_some(paired_metadata<BTC>())
+                    ),
+                    object::object_address(
+                        &option::destroy_some(paired_metadata<DAI>())
+                    )
+                ]
+            );
+        map
     }
 }
