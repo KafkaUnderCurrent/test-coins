@@ -1,3 +1,4 @@
+#[test_only]
 module test_coins::coins {
     use std::option;
     use std::signer::address_of;
