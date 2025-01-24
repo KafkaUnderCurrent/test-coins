@@ -8,7 +8,7 @@ rev = 'testnet'
 subdir = 'aptos-move/framework/aptos-framework'
 
 [addresses]
-test_coins = "_"
+test_coins = "0x10063753b6fadbb13a57567c00ef6cf82c05b1b74e0b3754a677a0344582ec1e"
 
 [dev-addresses]
 test_coins = "0x10063753b6fadbb13a57567c00ef6cf82c05b1b74e0b3754a677a0344582ec1e"
