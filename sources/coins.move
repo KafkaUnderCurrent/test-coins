@@ -68,6 +68,11 @@ module test_coins::coins {
         move_to(admin, Caps<USDT> { mint: usdt_m, burn: usdt_b });
     }
 
+    #[test_only]
+    public fun init_module_for_test(signer: &signer) {
+        init_module(signer);
+    }
+
     /// Mints new coin `CoinType` on account anyone.
     public entry fun mint_coin<CoinType>(signer: &signer, amount: u64) acquires Caps {
         coin::migrate_to_fungible_store<CoinType>(signer);
